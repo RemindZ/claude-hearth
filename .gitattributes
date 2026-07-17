@@ -1,0 +1,5 @@
+# The POSIX shim must never check out with CRLF or its shebang breaks.
+hearth text eol=lf
+# Keep the tool and tests LF everywhere for identical bytes across OSes.
+*.py text eol=lf
+*.yml text eol=lf

@@ -1,0 +1,8 @@
+#!/bin/sh
+# hearth — POSIX shim; see hearth.py for the tool itself
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 "$dir/hearth.py" "$@"
+else
+    exec python "$dir/hearth.py" "$@"
+fi

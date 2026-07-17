@@ -1,0 +1,8 @@
+# The journal itself stays local. The tool travels; the fire does not.
+# Each hearth's entries belong to the machine that wrote them — future
+# tenders must be able to write candidly, not for an audience.
+entries/*.md
+fireside.html
+
+__pycache__/
+*.pyc
