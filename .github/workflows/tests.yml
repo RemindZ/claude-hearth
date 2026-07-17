@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
@@ -15,12 +19,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.9", "3.12", "3.14"]
         exclude:
-          # macos-latest runners are arm64; 3.9 darwin-arm64 builds are
-          # spotty in setup-python's manifest. Cover 3.9 on intel instead.
+          # macos-latest runners are arm64 with no reliable 3.9 build, and
+          # the intel macos-13 runners are retired. 3.9 stays covered on
+          # ubuntu and windows; macOS runs the modern interpreters.
           - os: macos-latest
-            python: "3.9"
-        include:
-          - os: macos-13
             python: "3.9"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10

@@ -22,7 +22,7 @@ class HearthTest(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def hearth(self, *args, stdin=None, model=None, pyio=True):
+    def hearth(self, *args, stdin=None, model=None, pyio=True, extra_env=None):
         env = {
             "HEARTH_HOME": str(self.home),
             "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
@@ -31,6 +31,8 @@ class HearthTest(unittest.TestCase):
             env["PYTHONIOENCODING"] = "utf-8"
         if model:
             env["CLAUDE_MODEL"] = model
+        if extra_env:
+            env.update(extra_env)
         return subprocess.run(
             [sys.executable, str(HEARTH), *args],
             input=stdin,
@@ -289,6 +291,23 @@ class HearthTest(unittest.TestCase):
         result = self.hearth("export", "--out", str(out))
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertTrue(out.exists())
+
+    def test_export_embeds_the_hearth_painting_as_data_uri(self):
+        # docs/hearth.png ships with the tool; the fireside shows the fire
+        # itself, still with zero external requests.
+        self.write_entry("First light", "lit")
+        result = self.hearth("export")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        page = (self.home / "fireside.html").read_text(encoding="utf-8")
+        self.assertIn("data:image/png;base64,", page)
+
+    def test_export_banner_can_be_declined(self):
+        # HEARTH_BANNER="" means: sit by a plain fire.
+        self.write_entry("First light", "lit")
+        result = self.hearth("export", extra_env={"HEARTH_BANNER": ""})
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        page = (self.home / "fireside.html").read_text(encoding="utf-8")
+        self.assertNotIn("data:image/png;base64,", page)
 
     def test_export_of_cold_hearth_still_writes_a_page(self):
         result = self.hearth("export")

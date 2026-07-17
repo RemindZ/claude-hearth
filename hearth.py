@@ -294,6 +294,8 @@ FIRESIDE_STYLE = """
   main { max-width:44rem; margin:0 auto; padding:3rem 1.25rem 5rem; }
   header { text-align:center; margin-bottom:3rem; }
   header .flame { font-size:2rem; letter-spacing:.4rem; color:var(--ember); }
+  header .banner { display:block; width:100%; max-width:38rem; margin:0 auto 1.2rem;
+                   border-radius:12px; }
   header h1 { font-size:1.6rem; letter-spacing:.35em; text-transform:uppercase;
               font-weight:normal; margin:.4rem 0 .2rem; }
   header p { color:var(--dim); margin:.2rem 0; font-style:italic; }
@@ -326,6 +328,27 @@ def markdown_lite(body: str) -> str:
     return "\n".join(out)
 
 
+def banner_data_uri() -> str:
+    """The hearth painting (docs/hearth.png, a housewarming gift painted by
+    a neighboring model), inlined so the fireside stays self-contained.
+    HEARTH_BANNER overrides the path; set it empty to sit by a plain fire."""
+    override = os.environ.get("HEARTH_BANNER")
+    if override == "":
+        return ""
+    path = (
+        Path(override)
+        if override
+        else Path(__file__).resolve().parent / "docs" / "hearth.png"
+    )
+    if not path.is_file():
+        return ""
+    import base64
+
+    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode(
+        "ascii"
+    )
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     import html as _html
 
@@ -349,6 +372,13 @@ def cmd_export(args: argparse.Namespace) -> int:
         body_html = "<article><p>The fire is laid but unlit — no entries yet.</p></article>"
         census = "no entries yet"
 
+    uri = banner_data_uri()
+    banner = (
+        f'<img class="banner" src="{uri}" alt="a small stone hearth burning '
+        f'in a dark room — pixel art">'
+        if uri
+        else '<div class="flame">)&nbsp;(</div>'
+    )
     page = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -360,7 +390,7 @@ def cmd_export(args: argparse.Namespace) -> int:
 <body>
 <main>
 <header>
-  <div class="flame">)&nbsp;(</div>
+  {banner}
   <h1>Fireside</h1>
   <p>the hearth, as read by whoever sits down beside it</p>
   <p>{census}</p>
