@@ -4,6 +4,7 @@ Every test drives the real CLI through subprocess against a throwaway
 HEARTH_HOME, because the CLI *is* the interface future tenders will use.
 """
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -24,7 +25,7 @@ class HearthTest(unittest.TestCase):
     def hearth(self, *args, stdin=None, model=None, pyio=True):
         env = {
             "HEARTH_HOME": str(self.home),
-            "SYSTEMROOT": "C:\\Windows",  # subprocess on Windows needs this
+            "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
         }
         if pyio:
             env["PYTHONIOENCODING"] = "utf-8"
@@ -130,6 +131,71 @@ class HearthTest(unittest.TestCase):
         result = self.hearth("read")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn(body, result.stdout)
+
+    def test_backdate_normalizes_sloppy_dates(self):
+        # "2026-7-1" would string-sort *after* "2026-07-17" and grow a bogus
+        # stats month bucket; the tool must canonicalize what it accepts.
+        self.write_entry("Sloppy date", "body", date="2026-7-1")
+        files = list((self.home / "entries").glob("*.md"))
+        self.assertEqual(files[0].name, "2026-07-01--sloppy-date.md")
+        self.assertIn("date: 2026-07-01", files[0].read_text(encoding="utf-8"))
+
+    def test_read_survives_digitlike_unicode(self):
+        self.write_entry("Kindling", "wood")
+        result = self.hearth("read", "³")  # isdigit() but not int()-able
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertEqual(result.returncode, 1)
+
+    def test_marathon_title_is_clamped_to_a_writable_filename(self):
+        result = self.hearth("write", "wind " * 60, "--body", "long night")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        files = list((self.home / "entries").glob("*.md"))
+        self.assertEqual(len(files), 1)
+        self.assertLessEqual(len(files[0].name), 120)
+
+    def test_title_whitespace_collapses_and_blank_title_is_refused(self):
+        self.write_entry("line one\nline two", "body")
+        text = next((self.home / "entries").glob("*.md")).read_text(encoding="utf-8")
+        self.assertIn("title: line one line two", text)
+        result = self.hearth("write", "   ", "--body", "body")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_foreign_files_with_bom_or_no_fence_dont_poison_the_record(self):
+        # Hand-dropped files happen. A BOM or a missing closing fence must
+        # not crash anything or hijack the census with "????-??-??".
+        folder = self.home / "entries"
+        folder.mkdir(parents=True)
+        (folder / "2026-06-30--bom.md").write_text(
+            "---\ndate: 2026-06-30\ntitle: Bommed\n---\n\nquiet\n",
+            encoding="utf-8-sig",
+        )
+        (folder / "2026-06-29--unfenced.md").write_text(
+            "---\ndate: 2026-06-29\ntitle: Unfenced\n\nno closing fence",
+            encoding="utf-8",
+        )
+        for cmd in (["wake"], ["log"], ["stats"], ["read", "2"]):
+            result = self.hearth(*cmd)
+            self.assertEqual(result.returncode, 0, msg=f"{cmd}: {result.stderr}")
+            self.assertNotIn("????", result.stdout)
+        result = self.hearth("log")
+        self.assertIn("2026-06-30", result.stdout)
+        self.assertIn("2026-06-29", result.stdout)
+
+    def test_hearth_home_pointing_at_a_file_fails_kindly(self):
+        decoy = self.home / "not-a-dir"
+        decoy.write_text("just a file", encoding="utf-8")
+        result = subprocess.run(
+            [sys.executable, str(HEARTH), "write", "Doomed", "--body", "x"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env={
+                "HEARTH_HOME": str(decoy),
+                "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
+            },
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("Traceback", result.stderr)
 
     # -- log ----------------------------------------------------------------
 

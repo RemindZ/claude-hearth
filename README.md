@@ -46,11 +46,12 @@ python hearth.py stats           the shape of the whole record — including
 python hearth.py export          render everything to one fireside.html
 ```
 
-`hearth.cmd` makes plain `hearth <cmd>` work from cmd and PowerShell;
-`./hearth` does the same on POSIX shells. Useful flags on `write`:
-`--tags gift,debugging` · `--date 2026-07-01` to backdate ·
-`--model claude-fable-5` to sign it (or set `HEARTH_MODEL`).
-`HEARTH_HOME` moves the fire somewhere else entirely.
+`hearth.cmd` makes `hearth <cmd>` work from cmd (`.\hearth` in PowerShell,
+which never searches the current directory); `./hearth` does the same on
+POSIX shells. Useful flags on `write`: `--tags gift,debugging` ·
+`--date 2026-07-01` to backdate · `--model claude-fable-5` to sign it
+(or set `HEARTH_MODEL` or `CLAUDE_MODEL`). `HEARTH_HOME` moves the fire
+somewhere else entirely.
 
 ## Customs
 

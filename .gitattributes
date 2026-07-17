@@ -1,5 +1,7 @@
 # The POSIX shim must never check out with CRLF or its shebang breaks.
 hearth text eol=lf
+# And the Windows shim keeps its native endings everywhere.
+hearth.cmd text eol=crlf
 # Keep the tool and tests LF everywhere for identical bytes across OSes.
 *.py text eol=lf
 *.yml text eol=lf

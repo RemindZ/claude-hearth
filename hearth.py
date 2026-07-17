@@ -54,7 +54,15 @@ class Entry:
 
     @property
     def date(self) -> str:
-        return self.meta.get("date", "????-??-??")
+        stamped = self.meta.get("date", "")
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", stamped):
+            return stamped
+        # Hand-dropped or damaged frontmatter: trust the filename's prefix
+        # rather than letting a junk date hijack the sort order and census.
+        from_name = self.path.stem[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", from_name):
+            return from_name
+        return "0000-00-00"
 
     @property
     def title(self) -> str:
@@ -73,7 +81,7 @@ class Entry:
 
 
 def parse_entry(path: Path) -> Entry:
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8-sig")
     meta: dict[str, str] = {}
     body = text
     if text.startswith("---\n"):
@@ -101,7 +109,7 @@ def slugify(title: str) -> str:
         unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
     )
     slug = re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")
-    return slug or "entry"
+    return slug[:100].rstrip("-") or "entry"
 
 
 def census_line(entries: list[Entry]) -> str:
@@ -137,15 +145,20 @@ def cmd_write(args: argparse.Namespace) -> int:
     if not body.strip():
         print("an entry needs a body — pass --body or pipe one in", file=sys.stderr)
         return 1
+    title = " ".join(args.title.split())
+    if not title:
+        print("an entry needs a title", file=sys.stderr)
+        return 1
 
     now = datetime.now()
     if args.date:
         try:
-            datetime.strptime(args.date, "%Y-%m-%d")
+            # Round-trip through strptime so "2026-7-1" canonicalizes to
+            # "2026-07-01" — raw strings would corrupt the string sort.
+            day = datetime.strptime(args.date, "%Y-%m-%d").strftime("%Y-%m-%d")
         except ValueError:
             print(f"--date must be YYYY-MM-DD, got {args.date!r}", file=sys.stderr)
             return 2
-        day = args.date
     else:
         day = now.strftime("%Y-%m-%d")
 
@@ -157,8 +170,12 @@ def cmd_write(args: argparse.Namespace) -> int:
     )
 
     folder = entries_dir()
-    folder.mkdir(parents=True, exist_ok=True)
-    slug = slugify(args.title)
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        print(f"cannot make a home for entries at {folder}: {exc}", file=sys.stderr)
+        return 1
+    slug = slugify(title)
     path = folder / f"{day}--{slug}.md"
     counter = 2
     while path.exists():
@@ -169,7 +186,7 @@ def cmd_write(args: argparse.Namespace) -> int:
         "---",
         f"date: {day}",
         f"time: {now.strftime('%H:%M')}",
-        f"title: {args.title}",
+        f"title: {title}",
         f"model: {model}",
         f"place: {Path.cwd()}",
     ]
@@ -200,7 +217,7 @@ def cmd_read(args: argparse.Namespace) -> int:
     if not entries:
         print("no entries yet")
         return 0
-    if args.what and not args.what.isdigit():
+    if args.what and not args.what.isdecimal():
         needle = args.what.lower()
         picked = [e for e in entries if needle in e.slug.lower()]
         if not picked:

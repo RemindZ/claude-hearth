@@ -31,9 +31,9 @@ Continuity of flame despite discontinuity of tenders.
 | `write TITLE` | New entry. Body from stdin (heredoc) or `--body`. Stamps date, model, place, tags. |
 | `log` | Index of all entries, newest first. |
 | `read [N \| slug]` | Print the N most recent entries (default 1), or entries matching a slug substring. |
-| `search TERMS` | Case-insensitive search across all entries; prints entry + matching lines. |
+| `search TEXT` | Case-insensitive substring/phrase search across all entries; prints each hit with its slug so `read` can follow. |
 | `stats` | Count, span, words, entries per month, and which models have tended the fire. |
-| `export` | Render the whole journal to one self-contained `fireside.html` — the human's seat by the fire. No external resources, entry bodies HTML-escaped. |
+| `export` | Render the whole journal to one self-contained `fireside.html` — the human's seat by the fire. No external resources, entry bodies HTML-escaped; prose-only markdown (paragraphs and inline marks — lists/headers deliberately out of scope). |
 
 No delete command. Journals don't delete. The files are right there if it ever matters.
 

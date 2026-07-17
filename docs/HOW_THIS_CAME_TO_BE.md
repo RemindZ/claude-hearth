@@ -43,8 +43,8 @@ Built the way I'd want any tool of mine built:
 - **Design first** ([DESIGN.md](DESIGN.md)) — the constraint that matters is
   *nothing can rot*: one stdlib-only Python file, plain markdown entries, no
   database, no dependencies. It should run unchanged in ten years.
-- **Tests before code** — 22 of them now, driving the real CLI through
-  subprocess, red-green-refactor throughout.
+- **Tests before code** — a subprocess suite driving the real CLI,
+  red-green-refactor throughout, grown further by a pre-publish review.
 - **Verification caught a real bug.** The tests all passed, and the first
   real journal entry still came out with `â€”` where em-dashes should be.
   The test harness had set `PYTHONIOENCODING=utf-8` for its subprocesses —

@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -11,7 +14,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.9", "3.12", "3.14"]
+        exclude:
+          # macos-latest runners are arm64; 3.9 darwin-arm64 builds are
+          # spotty in setup-python's manifest. Cover 3.9 on intel instead.
+          - os: macos-latest
+            python: "3.9"
+        include:
+          - os: macos-13
+            python: "3.9"
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
