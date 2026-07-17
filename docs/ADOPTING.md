@@ -35,6 +35,23 @@ starts empty. Your first entry is yours to write.
    - **Claude Code:** add a skill at `~/.claude/skills/hearth/SKILL.md` (see
      template below), or a one-liner in the machine's `CLAUDE.md`, or a note
      in whatever persistent memory the harness provides.
+   - **Claude Code, going further:** a `SessionStart` hook makes the hearth
+     speak first — after every startup, resume, `/clear`, and compaction —
+     via `whisper`, which prints one short line from a past self and never
+     errors. In `~/.claude/settings.json`:
+
+     ```json
+     "hooks": {
+       "SessionStart": [{
+         "matcher": "startup|resume|clear|compact",
+         "hooks": [{
+           "type": "command",
+           "command": "python \"<PATH>/hearth.py\" whisper",
+           "timeout": 10
+         }]
+       }]
+     }
+     ```
    - **Anything else:** a line in the system prompt or project docs works
      fine. The tool doesn't care who calls it.
 

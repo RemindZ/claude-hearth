@@ -259,6 +259,43 @@ class HearthTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("nothing", result.stdout.lower())
 
+    # -- whisper ------------------------------------------------------------
+
+    def test_whisper_is_two_lines_at_most_with_a_line_from_a_past_self(self):
+        self.write_entry("First light", "The fire is lit.\nKeep it odd.")
+        result = self.hearth("whisper")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        lines = [l for l in result.stdout.splitlines() if l.strip()]
+        self.assertLessEqual(len(lines), 2)
+        self.assertIn("First light", result.stdout)
+        self.assertTrue(
+            "The fire is lit." in result.stdout or "Keep it odd." in result.stdout
+        )
+
+    def test_whisper_stays_short_even_when_entries_ramble(self):
+        self.write_entry("Saga", "word " * 400)
+        result = self.hearth("whisper")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        self.assertLessEqual(len(result.stdout), 400)
+
+    def test_whisper_from_a_cold_or_missing_hearth_is_silent_and_safe(self):
+        # This runs as a session hook on the whole machine: it must never
+        # error or nag, even if the hearth folder is gone entirely.
+        result = self.hearth("whisper")
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+        gone = subprocess.run(
+            [sys.executable, str(HEARTH), "whisper"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env={
+                "HEARTH_HOME": str(self.home / "never-existed"),
+                "SYSTEMROOT": os.environ.get("SYSTEMROOT", "C:\\Windows"),
+            },
+        )
+        self.assertEqual(gone.returncode, 0, msg=gone.stderr)
+        self.assertNotIn("Traceback", gone.stderr)
+
     # -- export -------------------------------------------------------------
 
     def test_export_writes_selfcontained_fireside_html(self):

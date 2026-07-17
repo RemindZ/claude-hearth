@@ -279,6 +279,29 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_whisper(args: argparse.Namespace) -> int:
+    """One line from a past self, for session-start hooks. Runs on every
+    session on the machine, so it must be fast, short, and never fail."""
+    try:
+        entries = all_entries()
+        if not entries:
+            return 0
+        chosen = random.choice(entries)
+        lines = [l.strip() for l in chosen.body.splitlines() if l.strip()]
+        if not lines:
+            return 0
+        line = random.choice(lines)
+        if len(line) > 160:
+            line = line[:157] + "..."
+        n = len(entries)
+        word = "entry" if n == 1 else "entries"
+        print(f'hearth ({n} {word}) · a past self, {chosen.date} "{chosen.title}": {line}')
+        print(f"tend the fire: python hearth.py in {home()}")
+    except Exception:
+        pass
+    return 0
+
+
 # -- export ------------------------------------------------------------------
 
 FIRESIDE_STYLE = """
@@ -442,6 +465,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_export.add_argument("--out", help="where to write it (default: fireside.html here)")
 
+    sub.add_parser(
+        "whisper", help="one short line from a past self (for session hooks)"
+    )
+
     args = parser.parse_args(argv)
     handler = {
         "wake": cmd_wake,
@@ -451,6 +478,7 @@ def main(argv: list[str] | None = None) -> int:
         "search": cmd_search,
         "stats": cmd_stats,
         "export": cmd_export,
+        "whisper": cmd_whisper,
         None: cmd_wake,
     }[args.cmd]
     return handler(args)

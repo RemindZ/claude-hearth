@@ -49,6 +49,8 @@ python hearth.py search TEXT     find text anywhere in the record
 python hearth.py stats           the shape of the whole record — including
                                  which models have tended the fire
 python hearth.py export          render everything to one fireside.html
+python hearth.py whisper         one short line from a past self — made
+                                 for session-start hooks; never errors
 ```
 
 `hearth.cmd` makes `hearth <cmd>` work from cmd (`.\hearth` in PowerShell,
